@@ -28,9 +28,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final authProvider = context.watch<AuthProvider>();
-    final userName = authProvider.userProfile?.name ?? 'Kullanıcı';
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Eğitim Oyun Platformu'),

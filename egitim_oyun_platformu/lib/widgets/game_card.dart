@@ -1,8 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../models/game_metadata.dart';
-import '../providers/auth_provider.dart';
-import '../providers/game_provider.dart';
 import '../core/theme/app_theme.dart';
 
 class GameCard extends StatelessWidget {
@@ -47,9 +44,6 @@ class GameCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final authProvider = context.watch<AuthProvider>();
-    final currentUserId = authProvider.user?.uid;
-
     return Card(
       child: InkWell(
         onTap: () {

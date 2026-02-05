@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../../models/subject_topic.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/constants/game_constants.dart';
-import '../../providers/game_provider.dart';
-import '../../providers/auth_provider.dart';
 import 'game_generation_screen.dart';
 
 class TopicInputScreen extends StatefulWidget {
