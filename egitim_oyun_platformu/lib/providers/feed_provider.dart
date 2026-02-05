@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import '../models/game_metadata.dart';
 import '../services/firebase/firestore_service.dart';
 
+const bool DEMO_MODE = true;
+
 class FeedProvider extends ChangeNotifier {
-  final FirestoreService _firestoreService = FirestoreService();
+  late final FirestoreService? _firestoreService;
 
   List<GameMetadata> _games = [];
   bool _isLoading = false;
@@ -15,14 +17,27 @@ class FeedProvider extends ChangeNotifier {
   String? get error => _error;
   String? get selectedSubject => _selectedSubject;
 
+  FeedProvider() {
+    if (!DEMO_MODE) {
+      _firestoreService = FirestoreService();
+    } else {
+      _firestoreService = null;
+    }
+  }
+
   void loadFeed({String? subject}) {
+    if (DEMO_MODE) {
+      // Demo modda boş feed
+      _games = [];
+      return;
+    }
     _isLoading = true;
     _selectedSubject = subject;
     notifyListeners();
 
     final stream = subject == null
-        ? _firestoreService.getGameFeed(limit: 20)
-        : _firestoreService.getGamesBySubject(subject, limit: 20);
+        ? _firestoreService!.getGameFeed(limit: 20)
+        : _firestoreService!.getGamesBySubject(subject, limit: 20);
 
     stream.listen(
       (games) {
@@ -39,8 +54,9 @@ class FeedProvider extends ChangeNotifier {
   }
 
   Future<bool> isGameLiked(String userId, String gameId) async {
+    if (DEMO_MODE) return false;
     try {
-      return await _firestoreService.isGameLiked(userId, gameId);
+      return await _firestoreService!.isGameLiked(userId, gameId);
     } catch (e) {
       return false;
     }

@@ -4,9 +4,11 @@ import '../models/game_metadata.dart';
 import '../services/ai/gemini_service.dart';
 import '../services/firebase/firestore_service.dart';
 
+const bool DEMO_MODE = true;
+
 class GameProvider extends ChangeNotifier {
-  final GeminiService _geminiService = GeminiService();
-  final FirestoreService _firestoreService = FirestoreService();
+  late final GeminiService _geminiService;
+  late final FirestoreService? _firestoreService;
 
   GameTemplate? _currentGame;
   List<GameMetadata> _feedGames = [];
@@ -19,6 +21,15 @@ class GameProvider extends ChangeNotifier {
   bool get isGenerating => _isGenerating;
   bool get isLoadingFeed => _isLoadingFeed;
   String? get error => _error;
+
+  GameProvider() {
+    _geminiService = GeminiService();
+    if (!DEMO_MODE) {
+      _firestoreService = FirestoreService();
+    } else {
+      _firestoreService = null;
+    }
+  }
 
   // Generate new game using AI
   Future<bool> generateGame({
@@ -58,9 +69,13 @@ class GameProvider extends ChangeNotifier {
   // Save game to Firebase
   Future<String?> saveGame(String userId, String userName) async {
     if (_currentGame == null) return null;
+    if (DEMO_MODE) {
+      // Demo modda sanal bir game ID döndür
+      return 'demo_game_${DateTime.now().millisecondsSinceEpoch}';
+    }
 
     try {
-      final gameId = await _firestoreService.saveGame(
+      final gameId = await _firestoreService!.saveGame(
         _currentGame!,
         userId,
         userName,
@@ -82,10 +97,15 @@ class GameProvider extends ChangeNotifier {
 
   // Load game feed
   void loadGameFeed() {
+    if (DEMO_MODE) {
+      // Demo modda boş feed
+      _feedGames = [];
+      return;
+    }
     _isLoadingFeed = true;
     notifyListeners();
 
-    _firestoreService.getGameFeed(limit: 20).listen(
+    _firestoreService!.getGameFeed(limit: 20).listen(
       (games) {
         _feedGames = games;
         _isLoadingFeed = false;
@@ -101,8 +121,9 @@ class GameProvider extends ChangeNotifier {
 
   // Toggle like
   Future<void> toggleLike(String userId, String gameId, bool isLiked) async {
+    if (DEMO_MODE) return;
     try {
-      await _firestoreService.toggleLike(userId, gameId, !isLiked);
+      await _firestoreService!.toggleLike(userId, gameId, !isLiked);
     } catch (e) {
       _error = e.toString();
       notifyListeners();
@@ -117,8 +138,9 @@ class GameProvider extends ChangeNotifier {
     required bool completed,
     required int duration,
   }) async {
+    if (DEMO_MODE) return;
     try {
-      await _firestoreService.recordGamePlay(
+      await _firestoreService!.recordGamePlay(
         userId: userId,
         gameId: gameId,
         score: score,

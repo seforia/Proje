@@ -4,8 +4,11 @@ import 'core/theme/app_theme.dart';
 import 'providers/auth_provider.dart';
 import 'providers/game_provider.dart';
 import 'providers/feed_provider.dart';
-import 'screens/auth/login_screen.dart';
 import 'screens/home/home_screen.dart';
+import 'screens/auth/login_screen.dart';
+
+// DEMO MODE: Firebase olmadan test için
+const bool DEMO_MODE = true;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -46,6 +49,11 @@ class AuthWrapper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // DEMO MODE: Direkt HomeScreen göster
+    if (DEMO_MODE) {
+      return HomeScreen();
+    }
+
     final authProvider = context.watch<AuthProvider>();
 
     // Show login if not authenticated
