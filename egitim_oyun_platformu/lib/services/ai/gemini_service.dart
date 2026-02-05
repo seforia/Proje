@@ -1,16 +1,25 @@
 import 'dart:convert';
 import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:http/http.dart' as http;
 import '../../models/game_template.dart';
 
 class GeminiService {
-  static const String _apiKey = 'YOUR_GEMINI_API_KEY_HERE'; // TODO: .env'den al
-  late final GenerativeModel _model;
+  // Prefer a secure backend proxy in production. Do NOT commit API keys to source control.
+  // For quick local testing you can pass the key with --dart-define=GEMINI_API_KEY="KEY"
+  static const String _apiKey = String.fromEnvironment('GEMINI_API_KEY', defaultValue: '');
+  // Optional backend proxy URL: --dart-define=GEMINI_BACKEND_URL="https://..."
+  static const String _backendUrl = String.fromEnvironment('GEMINI_BACKEND_URL', defaultValue: '');
+  late final GenerativeModel? _model;
 
   GeminiService() {
-    _model = GenerativeModel(
-      model: 'gemini-1.5-flash',
-      apiKey: _apiKey,
-    );
+    if (_apiKey.isNotEmpty) {
+      _model = GenerativeModel(
+        model: 'gemini-1.5-flash',
+        apiKey: _apiKey,
+      );
+    } else {
+      _model = null;
+    }
   }
 
   static const String _promptTemplate = '''
@@ -82,8 +91,25 @@ SADECE JSON ÇıKTıSı VER. Açıklama yapma. Bu şemayı kullan:
           .replaceAll('{age}', age)
           .replaceAll('{difficulty}', difficulty);
 
+      // If a backend URL is provided, call it (keeps key server-side)
+      if (_backendUrl.isNotEmpty) {
+        final uri = Uri.parse('$_backendUrl/generateGame');
+        final res = await http.post(uri,
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'prompt': prompt}));
+        if (res.statusCode != 200) throw Exception('Backend error: ${res.body}');
+        final map = json.decode(res.body);
+        final jsonString = map['json'] as String? ?? '';
+        final jsonData = json.decode(jsonString);
+        return GameTemplate.fromJson(jsonData);
+      }
+
+      if (_model == null) {
+        throw Exception('No API key provided. Set GEMINI_API_KEY or GEMINI_BACKEND_URL.');
+      }
+
       final content = [Content.text(prompt)];
-      final response = await _model.generateContent(content);
+      final response = await _model!.generateContent(content);
 
       if (response.text == null || response.text!.isEmpty) {
         throw Exception('AI yanıt vermedi');
