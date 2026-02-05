@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
-import '../home/home_screen.dart';
 
 class DemoAuthWrapper extends StatefulWidget {
   const DemoAuthWrapper({super.key});
@@ -139,7 +138,7 @@ class _DemoAuthWrapperState extends State<DemoAuthWrapper> {
                       borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                     ),
                     child: Text(
-                      '⚠️ Production için Firebase entegrasyonu ve Gemini API key'i gerekir.',
+                      '⚠️ Production için Firebase entegrasyonu ve Gemini API keyi gerekir.',
                       style: TextStyle(
                         fontSize: 12,
                         color: AppTheme.textSecondary,

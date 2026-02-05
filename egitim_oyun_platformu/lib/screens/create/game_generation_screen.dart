@@ -4,6 +4,7 @@ import '../../providers/game_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../home/home_screen.dart';
+import '../game/game_play_screen.dart';
 
 class GameGenerationScreen extends StatefulWidget {
   final String subject;
@@ -27,23 +28,22 @@ class _GameGenerationScreenState extends State<GameGenerationScreen> {
   @override
   void initState() {
     super.initState();
-    _generateGame();
+    // Schedule game generation after build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _generateGame();
+    });
   }
 
   Future<void> _generateGame() async {
     final gameProvider = context.read<GameProvider>();
 
-    // For MVP, use sample game instead of real AI
-    // Change to real AI when Gemini API key is configured
-    gameProvider.useSampleGame();
-
-    // Uncomment for real AI generation:
-    // await gameProvider.generateGame(
-    //   subject: widget.subject,
-    //   topic: widget.topic,
-    //   age: widget.age,
-    //   difficulty: widget.difficulty,
-    // );
+    // Generate game (will use sample if no API key)
+    await gameProvider.generateGame(
+      subject: widget.subject,
+      topic: widget.topic,
+      age: widget.age,
+      difficulty: widget.difficulty,
+    );
   }
 
   @override
@@ -312,25 +312,50 @@ class _GamePreview extends StatelessWidget {
           const SizedBox(height: AppTheme.paddingXLarge),
 
           // Action buttons
-          Row(
+          Column(
             children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: onCancel,
-                  child: const Text('İptal'),
-                ),
-              ),
-              const SizedBox(width: AppTheme.paddingMedium),
-              Expanded(
-                flex: 2,
+              // Test button
+              SizedBox(
+                width: double.infinity,
                 child: ElevatedButton.icon(
-                  onPressed: onSave,
-                  icon: const Icon(Icons.save_rounded),
-                  label: const Text('Kaydet ve Paylaş'),
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => GamePlayScreen(gameTemplate: game),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.play_arrow_rounded),
+                  label: const Text('Oyunu Test Et'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.secondaryColor,
+                    backgroundColor: AppTheme.accentColor,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
                 ),
+              ),
+              const SizedBox(height: AppTheme.paddingMedium),
+              // Save and Cancel buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: onCancel,
+                      child: const Text('İptal'),
+                    ),
+                  ),
+                  const SizedBox(width: AppTheme.paddingMedium),
+                  Expanded(
+                    flex: 2,
+                    child: ElevatedButton.icon(
+                      onPressed: onSave,
+                      icon: const Icon(Icons.save_rounded),
+                      label: const Text('Kaydet ve Paylaş'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.secondaryColor,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

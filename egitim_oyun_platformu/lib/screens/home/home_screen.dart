@@ -6,6 +6,9 @@ import '../../core/theme/app_theme.dart';
 import '../../widgets/game_card.dart';
 import '../create/subject_selection_screen.dart';
 import '../profile/profile_screen.dart';
+import '../simulation/mirror_simulation_screen.dart';
+import '../../models/simulation_spec.dart';
+import '../../services/ai/gemini_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -41,17 +44,30 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: _buildBody(),
       floatingActionButton: _currentIndex == 0
-          ? FloatingActionButton.extended(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const SubjectSelectionScreen(),
-                  ),
-                );
-              },
-              icon: const Icon(Icons.add_rounded),
-              label: const Text('Oyun Oluştur'),
-              backgroundColor: AppTheme.secondaryColor,
+          ? Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                FloatingActionButton(
+                  heroTag: 'test_simulation',
+                  onPressed: () => _testMirrorSimulation(context),
+                  child: const Icon(Icons.science),
+                  tooltip: 'Test Simülasyon',
+                ),
+                const SizedBox(height: 12),
+                FloatingActionButton.extended(
+                  heroTag: 'create_game',
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const SubjectSelectionScreen(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.add_rounded),
+                  label: const Text('Oyun Oluştur'),
+                  backgroundColor: AppTheme.secondaryColor,
+                ),
+              ],
             )
           : null,
       bottomNavigationBar: BottomNavigationBar(
@@ -112,6 +128,18 @@ class _HomeScreenState extends State<HomeScreen> {
     if (confirmed == true && context.mounted) {
       await context.read<AuthProvider>().signOut();
     }
+  }
+
+  void _testMirrorSimulation(BuildContext context) {
+    final geminiService = GeminiService();
+    final sampleJson = geminiService.getSampleMirrorSimulation();
+    final spec = SimulationSpec.fromJson(sampleJson);
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => MirrorSimulationScreen(spec: spec),
+      ),
+    );
   }
 }
 

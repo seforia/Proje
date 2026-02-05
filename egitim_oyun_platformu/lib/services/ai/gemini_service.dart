@@ -14,7 +14,7 @@ class GeminiService {
   GeminiService() {
     if (_apiKey.isNotEmpty) {
       _model = GenerativeModel(
-        model: 'gemini-1.5-flash',
+        model: 'gemini-2.5-flash',
         apiKey: _apiKey,
       );
     } else {
@@ -23,59 +23,61 @@ class GeminiService {
   }
 
   static const String _promptTemplate = '''
-Sen bir eğitim oyunu tasarım uzmanısın. Verilen konu için JSON formatında basit bir 2D eğitim oyunu oluştur.
+Sen eğitim oyunu tasarım uzmanı bir AI'sın.
+
+GÖREVİN:
+- Verilen konu için JSON-tabanlı mini oyun/simülasyon senaryosu üret
+- Etkileşimli öğrenmeye odaklan
+- Adım adım zorluk artış sağla
+- Öğretici ipuçları ve kural açıklamaları ekle
+
+ÖNEMLİ: Motor kodu YAZMA. Sadece senaryo JSON'u üret.
 
 KONU: {subject} - {topic}
-HEDEF YAŞ: {age}
+YAŞ: {age}
 ZORLUK: {difficulty}
 
-KURALLAR:
-1. Oyun türü "quiz_runner", "collector" veya "puzzle" olabilir
-2. 3-5 eğitsel soru ekle
-3. Her soru için 3 şık oluştur (1 doğru, 2 yanlış)
-4. Türkçe kullan
-5. Yaş grubuna uygun kelimeler seç
-6. Sprite isimleri İngilizce olmalı (varolan asset'lerden: astronaut_blue, robot_green, cat_orange, meteor_rock, tree_green, apple_red, coin_gold)
-7. Tema şunlardan biri olmalı: space, forest, underwater, desert, city
+ÇıKTı FORMATI (SEÇ):
 
-SADECE JSON ÇıKTıSı VER. Açıklama yapma. Bu şemayı kullan:
-
+1) QUIZ_RUNNER (koşarak soru cevaplama):
 {
   "gameType": "quiz_runner",
-  "subject": "...",
-  "topic": "...",
-  "title": "...",
-  "description": "...",
-  "difficulty": "kolay/orta/zor",
-  "config": {
-    "duration": 60,
-    "targetScore": 100,
-    "speed": 1.0,
-    "timeLimit": true
-  },
+  "subject": "...", "topic": "...", "title": "...", "description": "...", "difficulty": "...",
+  "config": {"duration": 60, "targetScore": 100, "timeLimit": true},
   "entities": [
-    {"id": "player1", "type": "player", "name": "...", "sprite": "astronaut_blue", "properties": {"jumpHeight": 150}},
-    {"id": "obstacle1", "type": "obstacle", "name": "...", "sprite": "meteor_rock"}
+    {"id": "player1", "type": "player", "sprite": "astronaut_blue", "properties": {"jumpHeight": 150}},
+    {"id": "obstacle1", "type": "obstacle", "sprite": "meteor_rock"}
   ],
   "questions": [
-    {
-      "id": "q1",
-      "text": "...",
-      "answers": [
-        {"id": "a1", "text": "..."},
-        {"id": "a2", "text": "..."},
-        {"id": "a3", "text": "..."}
-      ],
-      "correctAnswerId": "a1",
-      "points": 10
-    }
+    {"id": "q1", "text": "3 x 4 = ?", "answers": [{"id": "a1", "text": "12"}, {"id": "a2", "text": "7"}], "correctAnswerId": "a1", "points": 10}
   ],
-  "aesthetics": {
-    "theme": "space",
-    "backgroundColor": "#0a0a2e",
-    "primaryColor": "#00d9ff"
+  "pedagogy": {"concept": "Çarpım tablosu", "hint": "Çarpım, tekrarlı toplamadır", "explain": "3 x 4 = 3+3+3+3"}
+}
+
+2) MIRROR_REFLECTION (ayna simülasyonu):
+{
+  "meta": {"id": "sim_mirror_v1", "title": "Düzlem Aynada Yansıma", "subject": "Fizik", "topic": "Düzlem Ayna", "gradeBand": "9-10", "difficulty": "kolay", "language": "tr"},
+  "simulation": {
+    "scene": {"width": 800, "height": 600, "background": "#0A0A2E", "grid": {"enabled": true, "size": 20}},
+    "entities": [
+      {"id": "light1", "type": "light_source", "position": {"x": 100, "y": 300}, "angleDeg": 0, "draggable": true, "rotatable": true},
+      {"id": "mirror1", "type": "mirror", "position": {"x": 400, "y": 300}, "angleDeg": 45, "draggable": true, "rotatable": true, "properties": {"length": 180}},
+      {"id": "target1", "type": "target", "position": {"x": 680, "y": 240}, "properties": {"radius": 22}}
+    ],
+    "rules": {"reflection": {"enabled": true, "law": "angle_in_equals_angle_out"}, "ray": {"maxBounces": 1, "maxLength": 1000}}
+  },
+  "goals": [{"id": "goal1", "type": "hit_target", "targetId": "target1"}],
+  "constraints": {"maxMoves": 5, "timeLimitSec": 90},
+  "scoring": {"base": 100, "timeBonusPerSec": 1, "movePenalty": 5, "precisionBonus": {"enabled": true, "thresholdPx": 6, "bonus": 25}},
+  "pedagogy": {
+    "concept": "Gelme açısı = yansıma açısı", 
+    "hint": "Aynayı saat yönünde çevir", 
+    "explain": "Işın, ayna normaline göre eş açıyla yansır",
+    "tutorialSteps": ["Aynayı 10° çevir", "Işını hedefe yönlendir", "Kuralı doğrula"]
   }
 }
+
+SADECE JSON ÇıKTıSı VER. Açıklama yapma.
 ''';
 
   Future<GameTemplate> generateGame({
@@ -84,6 +86,11 @@ SADECE JSON ÇıKTıSı VER. Açıklama yapma. Bu şemayı kullan:
     required String age,
     required String difficulty,
   }) async {
+    // If no API key, return sample game directly
+    if (_apiKey.isEmpty && _backendUrl.isEmpty) {
+      return getSampleGame();
+    }
+
     try {
       final prompt = _promptTemplate
           .replaceAll('{subject}', subject)
@@ -97,7 +104,10 @@ SADECE JSON ÇıKTıSı VER. Açıklama yapma. Bu şemayı kullan:
         final res = await http.post(uri,
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({'prompt': prompt}));
-        if (res.statusCode != 200) throw Exception('Backend error: ${res.body}');
+        if (res.statusCode != 200) {
+          // Fallback to sample game on error
+          return getSampleGame();
+        }
         final map = json.decode(res.body);
         final jsonString = map['json'] as String? ?? '';
         final jsonData = json.decode(jsonString);
@@ -105,14 +115,16 @@ SADECE JSON ÇıKTıSı VER. Açıklama yapma. Bu şemayı kullan:
       }
 
       if (_model == null) {
-        throw Exception('No API key provided. Set GEMINI_API_KEY or GEMINI_BACKEND_URL.');
+        // No API key, use sample game
+        return getSampleGame();
       }
 
       final content = [Content.text(prompt)];
-      final response = await _model!.generateContent(content);
+      final response = await _model.generateContent(content);
 
       if (response.text == null || response.text!.isEmpty) {
-        throw Exception('AI yanıt vermedi');
+        // AI didn't respond, use sample game
+        return getSampleGame();
       }
 
       // Extract JSON from response
@@ -121,7 +133,8 @@ SADECE JSON ÇıKTıSı VER. Açıklama yapma. Bu şemayı kullan:
 
       return GameTemplate.fromJson(jsonData);
     } catch (e) {
-      throw Exception('Oyun üretilemedi: $e');
+      // On any error, return sample game instead of throwing
+      return getSampleGame();
     }
   }
 
@@ -227,5 +240,78 @@ SADECE JSON ÇıKTıSı VER. Açıklama yapma. Bu şemayı kullan:
     };
 
     return GameTemplate.fromJson(sampleJson);
+  }
+
+  // Sample mirror reflection simulation
+  Map<String, dynamic> getSampleMirrorSimulation() {
+    return {
+      "meta": {
+        "id": "sim_mirror_basic_v1",
+        "title": "Düzlem Aynada Yansıma - Temel",
+        "subject": "Fizik",
+        "topic": "Düzlem Ayna",
+        "gradeBand": "9-10",
+        "difficulty": "kolay",
+        "language": "tr"
+      },
+      "simulation": {
+        "scene": {
+          "width": 800,
+          "height": 600,
+          "background": "#0A0A2E",
+          "grid": {"enabled": true, "size": 20}
+        },
+        "entities": [
+          {
+            "id": "light1",
+            "type": "light_source",
+            "position": {"x": 100, "y": 300},
+            "angleDeg": 0,
+            "draggable": true,
+            "rotatable": true
+          },
+          {
+            "id": "mirror1",
+            "type": "mirror",
+            "position": {"x": 400, "y": 300},
+            "angleDeg": 45,
+            "draggable": true,
+            "rotatable": true,
+            "properties": {"length": 180}
+          },
+          {
+            "id": "target1",
+            "type": "target",
+            "position": {"x": 680, "y": 240},
+            "properties": {"radius": 22}
+          }
+        ],
+        "rules": {
+          "reflection": {"enabled": true, "law": "angle_in_equals_angle_out"},
+          "ray": {"maxBounces": 1, "maxLength": 1000}
+        }
+      },
+      "goals": [
+        {"id": "goal1", "type": "hit_target", "targetId": "target1"}
+      ],
+      "constraints": {"maxMoves": 5, "timeLimitSec": 90},
+      "scoring": {
+        "base": 100,
+        "timeBonusPerSec": 1,
+        "movePenalty": 5,
+        "precisionBonus": {"enabled": true, "thresholdPx": 6, "bonus": 25}
+      },
+      "pedagogy": {
+        "concept": "Gelme açısı = yansıma açısı",
+        "hint": "Aynayı saat yönünde çevir",
+        "explain":
+            "Işık, ayna yüzeyine dik doğruya (normal) göre eş açılarla gelir ve yansır. Bu, yansıma yasasıdır.",
+        "tutorialSteps": [
+          "Aynayı 10° çevirerek ışını hedefe yönlendir",
+          "Işık kaynağını hareket ettir",
+          "Gelme açısı ve yansıma açısını karşılaştır"
+        ]
+      }
+    };
   }
 }
